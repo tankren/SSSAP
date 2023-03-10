@@ -1,22 +1,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>重置SAP密码</title>
+	<title>SAP Self-Service Password Reset</title>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<link rel="stylesheet" type="text/css" href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.6.0/css/bootstrap.min.css">
 </head>
-<body>
+<body style="background-image: url('https://vhitspa.outsystemsenterprise.com/ITServicePortal/img/VHIT_Theme.StandardtemplatePlanttour.jpg?NFmbduWR9Td4hPIh4C0GKA'); background-size: cover;">
 	<div id="app" class="container">
-		<h1 class="text-center my-5">重置SAP密码</h1>
+		<h1 style="color: white;" class="text-center my-5">SAP Self-Service Password Reset</h1>
 		<div class="row justify-content-center">
 			<div class="col-md-6">
 				<form v-on:submit.prevent="resetPassword">
 					<div class="form-group">
-						<label for="username">用户名</label>
+						<label for="username"style="color: white;">用户名/SAP User</label>
 						<input type="text" class="form-control" id="username" v-model="username" required>
+						<br>
+						<label for="system" style="color: white;">SAP系统/SAP System</label>
+						<select id="system" class="form-control" id="system" v-model="system" required>
+							<option value="PVH/011">PVH/011 (正式系统)</option> 
+							<option value="QVH/011">QVH/011 (测试系统)</option> 
+							<option value="DVH/011">DVH/011 (开发系统)</option>
+						</select>	
+						<br>
 					</div>
-					<button type="submit" class="btn btn-primary">提交</button>
+					<center><button :disabled="loading" @click.prevent="resetPassword" class="btn btn-primary">{{ buttonMessage }}</button></center>
 				</form>
 				<div v-if="message" class="mt-3 alert" v-bind:class="{'alert-success': success, 'alert-danger': !success}" role="alert">{{ message }}</div>
 			</div>
@@ -29,24 +37,41 @@
 			el: '#app',
 			data: {
 				username: '',
+				system: '',
 				message: '',
+				loading: false,
 				success: false
+			},
+			computed: {
+				buttonMessage() {
+            		return this.loading ? '处理中.../Processing' : '提交/Submit';
+         		}
 			},
 			methods: {
 				resetPassword: function() {
 					var self = this;
+					self.loading = true;
+					self.message = '';
 					let formData = new FormData();
 					formData.append('username', self.username);
+					formData.append('system', self.system);
 					axios({
 					  method: 'post',
 					  url: 'http://localhost:5000/reset_password',
 					  data: formData
 					}).then(function(response) {
-						self.message = '新密码为：' + response.data.new_password;
-						self.success = true;
+							if (response.data.new_password) {
+								self.message = '密码修改成功，新密码为：' + response.data.new_password;
+								self.success = true;
+							} else {
+								self.message = '错误：' + response.data.error;
+								self.success = false;
+							}
 					}).catch(function(error) {
-						self.message = '重置密码失败，请检查用户名是否正确！';
+						self.message = "RFC通讯异常，请联系ICO！";
 						self.success = false;
+					}).finally(() => {
+						this.loading = false;
 					});
 				}
 			}
